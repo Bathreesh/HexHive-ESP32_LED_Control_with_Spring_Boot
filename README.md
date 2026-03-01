@@ -158,6 +158,3 @@ http://localhost:8080
 ## 📄 License
 
 HexHive
-
-
-* Or help you write a short LinkedIn project post about it
