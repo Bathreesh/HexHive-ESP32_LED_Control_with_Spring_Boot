@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Hexhive Solutions</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: #111;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .card {
+            margin: 30px auto;
+            padding: 25px;
+            width: 350px;
+            background: #1e1e1e;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #444;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #aaa;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #00d4ff;
+        }
+
+        #analogValue {
+            font-size: 3em;
+            margin: 10px 0;
+            color: #00ff88;
+            text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .toggle-container {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-toggle {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider-toggle {
+            background-color: #00d4ff;
+        }
+
+        input:checked+.slider-toggle:before {
+            transform: translateX(26px);
+        }
+
+        #pwmValueDisplay {
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .db-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .db-link:hover {
+            background: #222;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/h2-console" target="_blank" class="db-link">
+        <span>📊 Database Design</span>
+    </a>
+
+    <h1>Hexhive Solutions</h1>
+
+    <div class="card">
+        <h3>Digital Toggle</h3>
+        <label class="toggle-container">
+            <input type="checkbox" id="digitalToggle">
+            <span class="slider-toggle"></span>
+        </label>
+    </div>
+
+    <div class="card">
+        <h3>PWM Brightness</h3>
+        <input type="range" min="0" max="255" id="pwmSlider" value="0">
+        <p>Value: <span id="pwmValueDisplay">0</span></p>
+    </div>
+
+    <div class="card">
+        <h3>Analog Read</h3>
+        <h2 id="analogValue">0</h2>
+    </div>
+
+    <div class="card" style="width: 450px;">
+        <h3>Serial Monitor</h3>
+        <div id="serialLog"
+            style="background: #000; color: #00ff00; padding: 15px; border-radius: 5px; font-family: 'Courier New', Courier, monospace; text-align: left; height: 100px; overflow-y: auto; font-size: 0.9em; border: 1px solid #333;">
+            > System Online...
+        </div>
+    </div>
+
+    <script>
+        const toggle = document.getElementById("digitalToggle");
+        const slider = document.getElementById("pwmSlider");
+        const pwmValueDisplay = document.getElementById("pwmValueDisplay");
+        const analogValue = document.getElementById("analogValue");
+        const serialLog = document.getElementById("serialLog");
+
+        toggle.addEventListener("change", () => {
+            fetch(`/api/digital?value=${toggle.checked}`, { method: "POST" });
+        });
+
+        slider.addEventListener("input", () => {
+            pwmValueDisplay.innerText = slider.value;
+            fetch(`/api/pwm?value=${slider.value}`, { method: "POST" });
+        });
+
+        function updateState() {
+            fetch("/api/state")
+                .then(res => res.json())
+                .then(data => {
+                    analogValue.innerText = data.analog;
+                    // Sync UI with state from backend
+                    toggle.checked = data.digital;
+                    slider.value = data.pwm;
+                    pwmValueDisplay.innerText = data.pwm;
+
+                    // Update serial log
+                    if (data.serialMessage) {
+                        serialLog.innerHTML = `> ${data.serialMessage}`;
+                    }
+                })
+                .catch(err => console.error("Error fetching state:", err));
+        }
+
+        // Polling analog value every 1 second
+        setInterval(updateState, 1000);
+
+        // Initial fetch to sync values
+        updateState();
+    </script>
+
+</body>
+
+</html>
